@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Board } from "../components/Board";
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import type { Difficulty } from "../types/Difficulty";
 
 export function Game() {

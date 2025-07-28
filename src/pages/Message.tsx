@@ -36,7 +36,7 @@ export default function Message() {
 
       {/* Zarf Butonu */}
       <a
-        href="/message-card/index.html"
+        href={`${import.meta.env.BASE_URL}message-card/index.html`}
         target="_blank"
         rel="noopener noreferrer"
         className="absolute"

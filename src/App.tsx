@@ -3,11 +3,9 @@ import { Game } from './pages/Game';
 import Home from './pages/Home';
 import Message from './pages/Message';
 
-
-
 function App() {
   return (
-    <Router>
+    <Router basename="/s-web/">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/game" element={<Game />} />
