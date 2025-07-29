@@ -28,7 +28,7 @@ export const Board: React.FC<BoardProps> = ({
 }) => {
   const [board, setBoard] = useState<CellType[][]>([]);
   const [firstClick, setFirstClick] = useState(false);
-  const [flags, setFlags] = useState(0);
+  const [, setFlags] = useState(0);
 
   useEffect(() => {
     resetBoard();
