@@ -30,7 +30,7 @@ export default function Home() {
         className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center"
         style={{ top: "180px", gap: "32px" }}
       >
-        <Link to="/game" className="inline-block">
+        <Link to="/gamemenu" className="inline-block">
           <img src={mine} alt="Mine Button" style={{ width: "146px", height: "146px" }} />
         </Link>
         <Link to="/message" className="inline-block">

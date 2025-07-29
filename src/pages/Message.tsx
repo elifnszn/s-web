@@ -36,7 +36,7 @@ export default function Message() {
 
       {/* Zarf Butonu */}
       <a
-        href={`${import.meta.env.BASE_URL}message-card/index.html`}
+        href="https://elifnszn.github.io/s-web/message-card/a.html"
         target="_blank"
         rel="noopener noreferrer"
         className="absolute"
@@ -69,8 +69,8 @@ export default function Message() {
           src={homeImg}
           alt="Go Home"
           style={{
-            width: "68px",
-            height: "68px",
+            width: "88px",
+            height: "88px",
             display: "block",
           }}
         />

@@ -12,6 +12,7 @@ interface BoardProps {
   onWin?: () => void;
   setFlagsLeft?: (count: number) => void;
   setTimerRunning?: (running: boolean) => void;
+  disabled?: boolean; // ✅ eklendi
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -23,6 +24,7 @@ export const Board: React.FC<BoardProps> = ({
   onWin,
   setFlagsLeft,
   setTimerRunning,
+  disabled = false, // ✅ varsayılan değer
 }) => {
   const [board, setBoard] = useState<CellType[][]>([]);
   const [firstClick, setFirstClick] = useState(false);
@@ -46,7 +48,7 @@ export const Board: React.FC<BoardProps> = ({
     setBoard(emptyBoard);
     setFirstClick(false);
     setFlags(0);
-    setFlagsLeft?.(mines);
+    setFlagsLeft?.(0);
     setTimerRunning?.(false);
   };
 
@@ -123,6 +125,7 @@ export const Board: React.FC<BoardProps> = ({
   };
 
   const handleClick = (x: number, y: number) => {
+    if (disabled) return; // ✅ devre dışı kontrol
     if (!firstClick) {
       setFirstClick(true);
       onFirstClick();
@@ -160,6 +163,7 @@ export const Board: React.FC<BoardProps> = ({
     x: number,
     y: number
   ) => {
+    if (disabled) return; // ✅ devre dışı kontrol
     e.preventDefault?.();
     if (!firstClick) return;
     const newBoard = board.map(row => row.map(cell => ({ ...cell })));
@@ -173,13 +177,11 @@ export const Board: React.FC<BoardProps> = ({
         return f - 1;
       });
     } else {
-      if (flags < mines) {
-        cell.isFlagged = true;
-        setFlags(f => {
-          setFlagsLeft?.(f + 1);
-          return f + 1;
-        });
-      }
+      cell.isFlagged = true;
+      setFlags(f => {
+        setFlagsLeft?.(f + 1);
+        return f + 1;
+      });
     }
     setBoard(newBoard);
     checkWin(newBoard);

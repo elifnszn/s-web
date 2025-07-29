@@ -1,27 +1,102 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Board } from "../components/Board";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { Difficulty } from "../types/Difficulty";
+import homeImg from "../assets/home.png";
 
 export function Game() {
-  const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialDifficulty = queryParams.get('difficulty') as Difficulty | null;
+
+  const [difficulty, setDifficulty] = useState<Difficulty | null>(initialDifficulty);
   const [customSettings, setCustomSettings] = useState({ rows: 9, cols: 9, mines: 10 });
+
+  const [flagsLeft, setFlagsLeft] = useState(customSettings.mines); // ✅ İlk değer doğru atandı
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
-  const [flagsLeft, setFlagsLeft] = useState(0);
   const [key, setKey] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [gameWon, setGameWon] = useState(false);
+
   const [customInput, setCustomInput] = useState({
     rows: customSettings.rows.toString(),
     cols: customSettings.cols.toString(),
     mines: customSettings.mines.toString(),
   });
   const [errorMsg, setErrorMsg] = useState('');
-  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (difficulty) {
+      resetGame(difficulty);
+    }
+  }, [difficulty]);
+
+  const resetGame = (mode: Difficulty) => {
+    let newSettings = customSettings;
+
+    if (mode === 'easy') {
+      newSettings = { rows: 9, cols: 9, mines: 10 };
+    } else if (mode === 'medium') {
+      newSettings = { rows: 16, cols: 16, mines: 40 };
+    } else if (mode === 'hard') {
+      newSettings = { rows: 16, cols: 30, mines: 99 };
+    } else if (mode === 'custom') {
+      const rows = parseInt(customInput.rows, 10);
+      const cols = parseInt(customInput.cols, 10);
+      const mines = parseInt(customInput.mines, 10);
+      if (!isNaN(rows) && !isNaN(cols) && !isNaN(mines)) {
+        newSettings = { rows, cols, mines };
+      }
+    }
+
+    setCustomSettings(newSettings);
+    setFlagsLeft(newSettings.mines); // ✅ doğru sayaç başlatma
+
+    setElapsedTime(0);
+    setStartTime(null);
+    setTimerRunning(false);
+    setKey(prev => prev + 1);
+    setGameOver(false);
+    setGameWon(false);
+  };
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval>;
+    if (timerRunning) {
+      timer = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [timerRunning]);
+
+  const handleFirstClick = () => {
+    if (startTime === null && !gameOver && !gameWon) {
+      setStartTime(Date.now());
+      setTimerRunning(true);
+    }
+  };
+
+  const onGameOver = () => {
+    setGameOver(true);
+    setTimerRunning(false);
+  };
+
+  const onWin = () => {
+    setGameWon(true);
+    setTimerRunning(false);
+  };
 
   const handleStartCustomGameClick = () => {
-    setDifficulty('custom');
-    setErrorMsg('');
+    if (difficulty === 'custom') {
+      resetGame('custom');
+    } else {
+      setDifficulty('custom');
+      setErrorMsg('');
+    }
   };
 
   const handleCustomInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,139 +120,74 @@ export function Game() {
       return;
     }
 
-    setCustomSettings({ rows, cols, mines });
+    const newCustom = { rows, cols, mines };
+    setCustomSettings(newCustom);
+    setFlagsLeft(mines); // ✅ özel modda da doğru sayaç
     setErrorMsg('');
     setKey(prev => prev + 1);
     setStartTime(null);
     setElapsedTime(0);
     setTimerRunning(false);
+    setGameOver(false);
+    setGameWon(false);
   };
 
-  useEffect(() => {
-    let timer: ReturnType<typeof setInterval>;
-    if (timerRunning) {
-      timer = setInterval(() => {
-        setElapsedTime((prev) => prev + 1);
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [timerRunning]);
+  const rows = customSettings.rows;
+  const cols = customSettings.cols;
+  const mines = customSettings.mines;
 
-  const handleFirstClick = () => {
-    if (startTime === null) {
-      setStartTime(Date.now());
-      setTimerRunning(true);
-    }
-  };
-
-  const onGameOver = () => {
-    alert('Mayına bastın! 😵');
-    setTimerRunning(false);
-  };
-
-  const onWin = () => {
-    alert(`Kazandın! ⏱️ Süre: ${elapsedTime}s`);
-    setTimerRunning(false);
-  };
-
-  const resetGame = () => {
-    setElapsedTime(0);
-    setStartTime(null);
-    setTimerRunning(false);
-    setKey(prev => prev + 1);
-  };
-
-  let rows = 9, cols = 9, mines = 10;
-  if (difficulty === 'medium') {
-    rows = 16;
-    cols = 16;
-    mines = 40;
-  } else if (difficulty === 'hard') {
-    rows = 16;
-    cols = 30;
-    mines = 99;
-  } else if (difficulty === 'custom') {
-    rows = customSettings.rows;
-    cols = customSettings.cols;
-    mines = customSettings.mines;
-  }
+  const mineDisplay = useMemo(() => {
+    return customSettings.mines - flagsLeft;
+  }, [customSettings.mines, flagsLeft]); // ✅ birlikte güncellenir, yanlış göstermez
 
   return (
     <div className="min-h-screen w-screen bg-black text-white flex flex-col items-center justify-start">
-      {/* Üst menü */}
-      <div className="flex justify-center space-x-4 mt-4 text-sm">
-        <button onClick={() => setDifficulty('easy')} className="hover:underline">Kolay</button>
-        <button onClick={() => setDifficulty('medium')} className="hover:underline">Orta</button>
-        <button onClick={() => setDifficulty('hard')} className="hover:underline">Zor</button>
-        <button onClick={handleStartCustomGameClick} className="hover:underline">Özel</button>
-        <button onClick={resetGame} className="text-2xl">🙂</button>
-        <button onClick={() => navigate('/')} className="text-blue-400 hover:underline">Ana Sayfa</button>
+      {/* Üst Menü */}
+      <div className="flex justify-center space-x-4 mt-4 text-sm items-center">
+        {['easy', 'medium', 'hard'].map(mode => (
+          <button
+            key={mode}
+            onClick={() => {
+              if (difficulty === mode) resetGame(mode as Difficulty);
+              else setDifficulty(mode as Difficulty);
+            }}
+            className={`hover:underline capitalize ${difficulty === mode ? 'text-yellow-300' : ''}`}
+          >
+            {mode === 'easy' ? 'Kolay' : mode === 'medium' ? 'Orta' : 'Zor'}
+          </button>
+        ))}
+        <button onClick={handleStartCustomGameClick} className={`hover:underline ${difficulty === 'custom' ? 'text-yellow-300' : ''}`}>Özel</button>
+        <button onClick={() => navigate('/')}> <img src={homeImg} alt="Home" style={{ width: '32px', height: '32px' }} /></button>
       </div>
 
       {/* Sayaçlar */}
       {difficulty && (
         <div className="flex justify-between items-center w-full max-w-5xl px-4 mt-4 mb-4">
-          <div className="bg-white text-black shadow px-4 py-2 rounded text-lg">🚩 {mines - flagsLeft}</div>
-          <button onClick={resetGame} className="text-2xl">🙂</button>
+          <div className="bg-white text-black shadow px-4 py-2 rounded text-lg">🧨 {mineDisplay}</div>
+          <button onClick={() => resetGame(difficulty)} className="text-2xl">🙂</button>
           <div className="bg-white text-black shadow px-4 py-2 rounded text-lg">⏱️ {elapsedTime}s</div>
         </div>
       )}
 
-      {/* Özel mod formu */}
+      {/* Özel mod ayarları */}
       {difficulty === 'custom' && (
-        <div className="mb-4 bg-white text-black p-4 rounded shadow max-w-md w-full">
-          <h3 className="text-lg font-semibold mb-2">Özel Oyun Ayarları</h3>
-          <div className="grid grid-cols-2 gap-4 mb-2">
-            <label className="flex flex-col">
-              Genişlik (Sütun):
-              <input
-                type="text"
-                name="cols"
-                value={customInput.cols}
-                onChange={handleCustomInputChange}
-                className="border rounded p-1 mt-1"
-                maxLength={2}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="örn: 9"
-              />
-            </label>
-            <label className="flex flex-col">
-              Yükseklik (Satır):
-              <input
-                type="text"
-                name="rows"
-                value={customInput.rows}
-                onChange={handleCustomInputChange}
-                className="border rounded p-1 mt-1"
-                maxLength={2}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="örn: 9"
-              />
-            </label>
-            <label className="flex flex-col col-span-2">
-              Mayın Sayısı:
-              <input
-                type="text"
-                name="mines"
-                value={customInput.mines}
-                onChange={handleCustomInputChange}
-                className="border rounded p-1 mt-1 w-full"
-                maxLength={3}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="örn: 10"
-              />
-            </label>
+        <div className="mb-4 bg-white text-black p-4 rounded shadow max-w-5xl w-full">
+          <div className="flex gap-4 items-end">
+            <div className="flex flex-col">
+              <label className="text-sm">Genişlik</label>
+              <input type="text" name="cols" value={customInput.cols} onChange={handleCustomInputChange} className="border rounded p-1 w-24" maxLength={2} inputMode="numeric" pattern="[0-9]*" />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm">Yükseklik</label>
+              <input type="text" name="rows" value={customInput.rows} onChange={handleCustomInputChange} className="border rounded p-1 w-24" maxLength={2} inputMode="numeric" pattern="[0-9]*" />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm">Mayın</label>
+              <input type="text" name="mines" value={customInput.mines} onChange={handleCustomInputChange} className="border rounded p-1 w-24" maxLength={3} inputMode="numeric" pattern="[0-9]*" />
+            </div>
+            <button onClick={handleCreateCustomGame} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded h-10">Oluştur</button>
           </div>
-          {errorMsg && <div className="text-red-600 mb-2">{errorMsg}</div>}
-          <button
-            onClick={handleCreateCustomGame}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded"
-          >
-            Oluştur
-          </button>
+          {errorMsg && <div className="text-red-600 mt-2">{errorMsg}</div>}
         </div>
       )}
 
@@ -194,7 +204,23 @@ export function Game() {
             onWin={onWin}
             setFlagsLeft={setFlagsLeft}
             setTimerRunning={setTimerRunning}
+            disabled={gameOver || gameWon}
           />
+        </div>
+      )}
+
+      {/* Uyarı Mesajı */}
+      {(gameOver || gameWon) && (
+        <div className="bg-yellow-300 text-black px-4 py-2 rounded shadow mt-4 text-center">
+          <h2 className="text-lg font-semibold">
+            {gameOver ? 'Mayına Bastın! 😵' : `Kazandın! 🎉 Süre: ${elapsedTime}s`}
+          </h2>
+          <button
+            onClick={() => resetGame(difficulty!)}
+            className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded"
+          >
+            Yeniden Oyna
+          </button>
         </div>
       )}
     </div>
